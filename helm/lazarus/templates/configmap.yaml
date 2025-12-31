@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "lazarus.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "lazarus.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    operator:
+      log_level: {{ .Values.config.logLevel }}
+      namespace: {{ .Values.config.namespace }}
+      test_namespace_prefix: {{ .Values.config.testNamespacePrefix }}
+
+    velero:
+      namespace: {{ .Values.config.velero.namespace }}
+      timeout: {{ .Values.config.velero.timeout }}
+
+    defaults:
+      ttl_hours: {{ .Values.config.defaults.ttlHours }}
+      health_check_timeout: {{ .Values.config.defaults.healthCheckTimeout }}
+      health_check_retries: {{ .Values.config.defaults.healthCheckRetries }}
+
+    metrics:
+      port: {{ .Values.config.metrics.port }}
+      enabled: {{ .Values.config.metrics.enabled }}
+
+    cleanup:
+      auto_cleanup: {{ .Values.config.cleanup.autoCleanup }}
+      cleanup_on_success: {{ .Values.config.cleanup.cleanupOnSuccess }}
+      cleanup_on_failure: {{ .Values.config.cleanup.cleanupOnFailure }}
+
+    performance:
+      max_concurrent_tests: {{ .Values.config.performance.maxConcurrentTests }}
+      reconcile_interval: {{ .Values.config.performance.reconcileInterval }}

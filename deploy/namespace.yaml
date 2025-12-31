@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lazarus-system
+  labels:
+    app.kubernetes.io/name: lazarus-operator
+    app.kubernetes.io/component: operator

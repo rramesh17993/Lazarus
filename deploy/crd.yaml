@@ -1,0 +1,212 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: lazarusrestoretests.lazarus.io
+  labels:
+    app.kubernetes.io/name: lazarus-operator
+spec:
+  group: lazarus.io
+  names:
+    kind: LaziusRestoreTest
+    listKind: LaziusRestoreTestList
+    plural: lazarusrestoretests
+    singular: lazarusrestoretest
+    shortNames:
+      - lrt
+      - laztest
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - backupName
+                - restoreNamespace
+              properties:
+                backupName:
+                  type: string
+                  description: "Name of the Velero backup to restore"
+                backupNamespace:
+                  type: string
+                  default: "velero"
+                  description: "Namespace where the backup is located"
+                restoreNamespace:
+                  type: string
+                  description: "Namespace to restore resources into"
+                ttl:
+                  type: string
+                  default: "24h"
+                  description: "TTL for test namespace (e.g., 24h, 1d)"
+                cleanup:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    deleteNamespace:
+                      type: boolean
+                      default: true
+                    deleteSecrets:
+                      type: boolean
+                      default: true
+                restore:
+                  type: object
+                  properties:
+                    includedNamespaces:
+                      type: array
+                      items:
+                        type: string
+                    excludedNamespaces:
+                      type: array
+                      items:
+                        type: string
+                    includedResources:
+                      type: array
+                      items:
+                        type: string
+                    excludedResources:
+                      type: array
+                      items:
+                        type: string
+                    restoreStatus:
+                      type: boolean
+                      default: false
+                healthChecks:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    timeout:
+                      type: integer
+                      default: 600
+                    retries:
+                      type: integer
+                      default: 3
+                    database:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                        type:
+                          type: string
+                          enum: ["postgres", "mysql", "mongodb"]
+                        connectionString:
+                          type: object
+                          properties:
+                            value:
+                              type: string
+                            secretRef:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                key:
+                                  type: string
+                        queries:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              sql:
+                                type: string
+                              expectedRange:
+                                type: object
+                                properties:
+                                  min:
+                                    type: integer
+                                  max:
+                                    type: integer
+                              expectedColumns:
+                                type: array
+                                items:
+                                  type: string
+                              expectedRecency:
+                                type: integer
+                    http:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                        endpoints:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              url:
+                                type: string
+                              expectedStatus:
+                                type: integer
+                              timeout:
+                                type: integer
+                              retries:
+                                type: integer
+                    customChecks:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                        pod:
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                notifications:
+                  type: object
+                  properties:
+                    onSuccess:
+                      type: object
+                      properties:
+                        slack:
+                          type: object
+                          properties:
+                            enabled:
+                              type: boolean
+                            channel:
+                              type: string
+                            message:
+                              type: string
+                    onFailure:
+                      type: object
+                      properties:
+                        slack:
+                          type: object
+                          properties:
+                            enabled:
+                              type: boolean
+                            channel:
+                              type: string
+                            mentionOnFailure:
+                              type: string
+                            message:
+                              type: string
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Backup
+          type: string
+          jsonPath: .spec.backupName
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Success
+          type: boolean
+          jsonPath: .status.result.success
+        - name: RTO
+          type: string
+          jsonPath: .status.result.rto
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp

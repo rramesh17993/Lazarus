@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lazarus-operator-config
+  namespace: lazarus-system
+  labels:
+    app.kubernetes.io/name: lazarus-operator
+data:
+  config.yaml: |
+    operator:
+      log_level: INFO
+      namespace: lazarus-system
+      test_namespace_prefix: lazarus-test
+
+    velero:
+      namespace: velero
+      timeout: 600
+
+    defaults:
+      ttl_hours: 24
+      health_check_timeout: 600
+      health_check_retries: 3
+
+    metrics:
+      port: 8080
+      enabled: true
+
+    cleanup:
+      auto_cleanup: true
+      cleanup_on_success: true
+      cleanup_on_failure: false
+
+    performance:
+      max_concurrent_tests: 5
+      reconcile_interval: 60

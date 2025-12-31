@@ -1,0 +1,102 @@
+---
+# Microservices application restore test
+apiVersion: lazarus.io/v1alpha1
+kind: LaziusRestoreTest
+metadata:
+  name: microservices-backup-test
+  namespace: lazarus-system
+  labels:
+    backup: microservices-app
+    environment: staging
+spec:
+  backupName: microservices-backup-20251231
+  backupNamespace: velero
+  restoreNamespace: lazarus-test-microservices
+
+  ttl: 12h
+
+  cleanup:
+    enabled: true
+    deleteNamespace: true
+
+  restore:
+    includedNamespaces:
+      - api-gateway
+      - user-service
+      - order-service
+      - payment-service
+    excludedResources:
+      - ingresses  # Don't restore ingresses to avoid conflicts
+
+  healthChecks:
+    enabled: true
+    timeout: 900  # 15 minutes
+    retries: 5
+
+    # Check all microservice endpoints
+    http:
+      enabled: true
+      endpoints:
+        - name: api-gateway
+          url: http://api-gateway:8080/health
+          expectedStatus: 200
+
+        - name: user-service
+          url: http://user-service:8080/health
+          expectedStatus: 200
+
+        - name: order-service
+          url: http://order-service:8080/health
+          expectedStatus: 200
+
+        - name: payment-service
+          url: http://payment-service:8080/health
+          expectedStatus: 200
+
+        # Check service-to-service communication
+        - name: api-to-user-service
+          url: http://api-gateway:8080/api/v1/users
+          expectedStatus: 200
+
+    # Custom checks via job
+    customChecks:
+      enabled: true
+      pod:
+        image: integration-test-runner:latest
+        command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            echo "Running integration tests..."
+            
+            # Test user service
+            curl -f http://user-service:8080/health || exit 1
+            
+            # Test order service
+            curl -f http://order-service:8080/health || exit 1
+            
+            # Test end-to-end flow
+            ./run-e2e-tests.sh
+            
+            echo "All integration tests passed!"
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        timeout: 600
+
+  notifications:
+    onSuccess:
+      slack:
+        enabled: true
+        channel: "#platform-alerts"
+
+    onFailure:
+      slack:
+        enabled: true
+        channel: "#platform-alerts"
+        mentionOnFailure: "@platform-oncall"

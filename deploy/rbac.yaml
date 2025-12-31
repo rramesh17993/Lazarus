@@ -1,0 +1,110 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: lazarus-operator
+  namespace: lazarus-system
+  labels:
+    app.kubernetes.io/name: lazarus-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: lazarus-operator
+  labels:
+    app.kubernetes.io/name: lazarus-operator
+rules:
+  # LaziusRestoreTest CRD permissions
+  - apiGroups: ["lazarus.io"]
+    resources: ["lazarusrestoretests"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["lazarus.io"]
+    resources: ["lazarusrestoretests/status"]
+    verbs: ["get", "update", "patch"]
+
+  # Velero resources (read-only)
+  - apiGroups: ["velero.io"]
+    resources: ["backups", "restores"]
+    verbs: ["get", "list", "watch", "create"]
+  - apiGroups: ["velero.io"]
+    resources: ["backups/status", "restores/status"]
+    verbs: ["get"]
+
+  # Namespace management
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+
+  # Pod management (for health checks)
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+
+  # Service and ConfigMap access
+  - apiGroups: [""]
+    resources: ["services", "configmaps"]
+    verbs: ["get", "list"]
+
+  # Secret access (read-only for DB credentials)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+
+  # Events
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+
+  # For watching all resources in test namespaces
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: lazarus-operator
+  labels:
+    app.kubernetes.io/name: lazarus-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: lazarus-operator
+subjects:
+  - kind: ServiceAccount
+    name: lazarus-operator
+    namespace: lazarus-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: lazarus-operator-leader-election
+  namespace: lazarus-system
+  labels:
+    app.kubernetes.io/name: lazarus-operator
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: lazarus-operator-leader-election
+  namespace: lazarus-system
+  labels:
+    app.kubernetes.io/name: lazarus-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: lazarus-operator-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: lazarus-operator
+    namespace: lazarus-system

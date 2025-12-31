@@ -1,0 +1,20 @@
+apiVersion: v2
+name: lazarus
+description: Kubernetes operator for automated backup recovery validation with Velero
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - operator
+  - backup
+  - disaster-recovery
+  - velero
+  - sre
+home: https://github.com/yourusername/lazarus-operator
+sources:
+  - https://github.com/yourusername/lazarus-operator
+maintainers:
+  - name: Your Name
+    email: your.email@example.com
+icon: https://raw.githubusercontent.com/yourusername/lazarus-operator/main/logo.png

@@ -1,0 +1,134 @@
+---
+# Advanced restore test with database validation
+apiVersion: lazarus.io/v1alpha1
+kind: LaziusRestoreTest
+metadata:
+  name: database-backup-test
+  namespace: lazarus-system
+  labels:
+    backup: postgres-backup
+    environment: production
+    criticality: high
+spec:
+  backupName: postgres-daily-backup-20251231
+  backupNamespace: velero
+  restoreNamespace: lazarus-test-postgres
+
+  ttl: 48h  # Keep for 48 hours for investigation
+
+  cleanup:
+    enabled: true
+    deleteNamespace: true
+    deleteSecrets: true  # Remove DB credentials
+
+  restore:
+    includedNamespaces:
+      - database
+    excludedNamespaces:
+      - kube-system
+      - velero
+    includedResources:
+      - deployments
+      - statefulsets
+      - services
+      - configmaps
+      - secrets
+      - persistentvolumeclaims
+    restoreStatus: false
+
+  healthChecks:
+    enabled: true
+    timeout: 600
+    retries: 3
+
+    # Database connectivity and data validation
+    database:
+      enabled: true
+      type: postgres
+      namespace: lazarus-test-postgres
+      connectionString:
+        secretRef:
+          name: postgres-credentials
+          key: connection-string
+
+      queries:
+        # Verify user count is within expected range
+        - name: verify-users-count
+          sql: "SELECT COUNT(*) FROM users"
+          expectedRange:
+            min: 100000
+            max: 1000000
+
+        # Verify schema integrity
+        - name: verify-schema
+          sql: |
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='users' 
+            ORDER BY column_name
+          expectedColumns:
+            - created_at
+            - email
+            - id
+            - name
+            - updated_at
+
+        # Verify data freshness (updated within last hour)
+        - name: verify-data-freshness
+          sql: "SELECT MAX(updated_at) FROM users"
+          expectedRecency: 3600  # 1 hour in seconds
+
+        # Verify referential integrity
+        - name: verify-foreign-keys
+          sql: |
+            SELECT COUNT(*) 
+            FROM user_profiles up 
+            LEFT JOIN users u ON up.user_id = u.id 
+            WHERE u.id IS NULL
+          expectedRange:
+            min: 0
+            max: 0  # No orphaned records
+
+    # HTTP health checks for database API
+    http:
+      enabled: true
+      endpoints:
+        - name: db-api-health
+          url: http://db-api-service:8080/health
+          expectedStatus: 200
+          timeout: 30
+          retries: 3
+
+        - name: db-api-ready
+          url: http://db-api-service:8080/ready
+          expectedStatus: 200
+
+        - name: db-metrics
+          url: http://db-api-service:8080/metrics
+          expectedStatus: 200
+          expectedBody:
+            contains: "database_connections_active"
+
+  # Notifications
+  notifications:
+    onSuccess:
+      slack:
+        enabled: true
+        channel: "#data-platform"
+        message: "PostgreSQL backup validated successfully"
+
+    onFailure:
+      slack:
+        enabled: true
+        channel: "#data-platform-alerts"
+        mentionOnFailure: "@data-platform-oncall"
+        message: "PostgreSQL backup validation FAILED - immediate attention required"
+
+  # Metrics
+  metrics:
+    enabled: true
+    recordMetrics:
+      - restore-duration-seconds
+      - health-check-duration-seconds
+      - recovered-resources-count
+      - database-query-results

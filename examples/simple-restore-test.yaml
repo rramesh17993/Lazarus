@@ -1,0 +1,31 @@
+---
+# Simple restore test example
+# Tests a backup with minimal configuration
+apiVersion: lazarus.io/v1alpha1
+kind: LaziusRestoreTest
+metadata:
+  name: simple-backup-test
+  namespace: lazarus-system
+  labels:
+    backup: my-app-backup
+    environment: production
+spec:
+  # Backup to test
+  backupName: my-app-backup-20251231
+  backupNamespace: velero
+
+  # Test namespace (auto-generated if not specified)
+  restoreNamespace: lazarus-test-my-app
+
+  # Cleanup after 24 hours
+  ttl: 24h
+
+  cleanup:
+    enabled: true
+    deleteNamespace: true
+
+  # Basic health checks
+  healthChecks:
+    enabled: true
+    timeout: 300
+    retries: 3
