@@ -2,7 +2,7 @@
 name = "lazarus-operator"
 version = "0.1.0"
 description = "Kubernetes operator for automated backup recovery validation with Velero"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Rajesh Ramesh <rramesh17993@gmail.com>"]
 readme = "README.md"
 license = "Apache-2.0"
 homepage = "https://github.com/yourusername/lazarus-operator"
