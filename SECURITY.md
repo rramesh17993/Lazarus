@@ -12,7 +12,7 @@ We release patches for security vulnerabilities for the following versions:
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to: security@example.com
+Instead, please report them via email to: rramesh17993@gmail.com
 
 You should receive a response within 48 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
 
@@ -88,5 +88,4 @@ Test resources are cleaned automatically but:
 
 Subscribe to security updates:
 - Watch repository for security advisories
-- Join mailing list: security-announce@example.com
 - Check CHANGELOG.md for security fixes
